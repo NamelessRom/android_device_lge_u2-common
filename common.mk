@@ -2,6 +2,8 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
 
 $(call inherit-product, device/common/gps/gps_eu.mk)
 
+$(call inherit-product, vendor/nameless/config/apns.mk)
+
 DEVICE_PACKAGE_OVERLAYS += device/lge/u2-common/overlay
 
 PRODUCT_COPY_FILES += \
