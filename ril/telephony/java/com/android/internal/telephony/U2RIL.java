@@ -41,7 +41,7 @@ public class U2RIL extends RIL implements CommandsInterface {
     protected CallPathHandler mPathHandler;
 
     private int mCallPath = -1;
-    private boolean mCallInProgress = false;
+    private int mCallInProgress = 0;
 
     public U2RIL(Context context, int networkMode, int cdmaSubscription) {
         super(context, networkMode, cdmaSubscription);
@@ -206,26 +206,32 @@ public class U2RIL extends RIL implements CommandsInterface {
                 int[] intArray = (int[]) ret;
                 int xcallState = intArray[1];
                 /* 0 - established
+                 * 1 - on hold
                  * 2 - dial start
                  * 3 - dialing
                  * 4 - incoming
+                 * 5 - call waiting
                  * 6 - hangup
                  * 7 - answered
                  */
                 switch (xcallState) {
-                case 2:
-                case 4:
-                    WriteLgeCPATH(1);
-                    mCallPath = 1;
-                    mCallInProgress = true;
+                case 7:
+                    if (mCallInProgress == 0) {
+                        WriteLgeCPATH(1);
+                        mCallPath = 1;
+                    }
+                    mCallInProgress++;
                     break;
                 case 6:
-                    if (mCallPath != 1) {
-                        WriteLgeCPATH(1);
-                    }
-                    WriteLgeCPATH(0);
-                    mCallPath = 0;
-                    mCallInProgress = false;
+                    if (mCallInProgress == 1) {
+                        if (mCallPath != 1) {
+                            WriteLgeCPATH(1);
+                        }
+                        WriteLgeCPATH(0);
+                        mCallPath = 0;
+                        mCallInProgress = 0;
+                    } else if (mCallInProgress != 0)
+                        mCallInProgress--;
                     break;
                 }
 
@@ -269,7 +275,7 @@ public class U2RIL extends RIL implements CommandsInterface {
         private void checkSpeakerphoneState() {
             if (mCallState == TelephonyManager.CALL_STATE_OFFHOOK) {
                 int callPath = -1;
-                if (mCallInProgress) {
+                if (mCallInProgress > 0) {
                     if (audioManager.isSpeakerphoneOn()) {
                         callPath = 3;
                     } else if (audioManager.isBluetoothScoOn()) {
